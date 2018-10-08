@@ -137,6 +137,18 @@ EOF
         echo 'No client certificates to load.'
     fi
 
+    #Build the server trusted keystore
+    if curl -L -s --insecure -X LIST -H "X-Vault-Token: $VAULT_TOKEN" --fail $VAULT_ADDR/v1/secret/ssl/vetservices-client > /dev/null 2>&1; then
+        CLIENT_CERTS=$(curl -L -s --insecure -X LIST -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/ssl/vetservices-client | jq -r '.data.keys[]')
+        for cert in $CLIENT_CERTS; do
+            echo "Loading vetservices client certificate for $cert"
+            curl -L -s --insecure -X GET -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/ssl/vetservices-client/$cert | jq -r '.data.certificate' > $TMPDIR/$cert.crt
+            keytool -importcert -alias $cert -keystore $SERVER_TRUSTSTORE -noprompt -storepass $SERVER_TRUSTSTORE_PASS -file $TMPDIR/$cert.crt
+        done
+    else
+        echo 'No vetservices client certificates to load.'
+    fi
+
     #Determine which Key Alias to use. If IGNORE_EXT_CERT variable is set, we will ignore the existing
     #certificate from Vault and use the generated internal cert.
     if [[ $IGNORE_EXT_CERT ]]; then
