@@ -24,5 +24,6 @@ RUN curl -s -L -o /usr/bin/jq https://github.com/stedolan/jq/releases/download/j
 COPY envconsul-config.hcl $ENVCONSUL_CONFIG
 COPY consul-template-config.hcl $CONSUL_TEMPLATE_CONFIG
 COPY run-wrapper.sh /run-wrapper.sh
+COPY healthcheck /healthcheck
 
 ENTRYPOINT /run-wrapper.sh
