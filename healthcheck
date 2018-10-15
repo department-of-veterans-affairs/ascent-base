@@ -114,10 +114,10 @@ function run {
   done
 
   assert_is_installed "curl"
-  local status=`curl -I -ks --stderr /dev/null  --cert $clientCert --key $clientKey --cacert $caCert $url 2>&1 | head -1 | cut -d ' ' -f2`
+  local status=`curl -ksS --stderr /dev/null  --cert $clientCert --key $clientKey --cacert $caCert $url 2>&1 | head -1 | cut -d ' ' -f2`
 
   if [ "$status" != "200" ]; then
-    curl -I -ksS --cert $clientCert --key $clientKey --cacert $caCert $url
+    curl -ksS --cert $clientCert --key $clientKey --cacert $caCert $url
     log_error "Healthcheck failed. Service returned HTTP Status Code: $status"
     exit 1
   fi
