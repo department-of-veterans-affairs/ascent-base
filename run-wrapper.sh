@@ -100,7 +100,7 @@ EOF
         echo "$SERVER_KEYSTORE_PASS" | openssl pkcs12 -export -out $TMPDIR/app.p12 -inkey $TMPDIR/app.key -in $TMPDIR/app.crt -password stdin -name $APP_NAME
         keytool -importkeystore -srckeystore $TMPDIR/app.p12 -srcstoretype PKCS12 -destkeystore $SERVER_KEYSTORE -deststoretype JKS -deststorepass $SERVER_KEYSTORE_PASS -srcstorepass $SERVER_KEYSTORE_PASS -alias $APP_NAME -destalias $APP_NAME
     fi
-    
+
     #Build the client trusted keystore
     if curl -L -s --insecure -X LIST -H "X-Vault-Token: $VAULT_TOKEN" --fail $VAULT_ADDR/v1/secret/ssl/trusted > /dev/null 2>&1; then
         CA_CERTS=$(curl -L -s --insecure -X LIST -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/ssl/trusted | jq -r '.data.keys[]')
@@ -129,9 +129,14 @@ EOF
             echo "Loading certificate for $cert"
             curl -L -s --insecure -X GET -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/ssl/client/$APP_NAME/$cert | jq -r '.data.certificate' > $TMPDIR/$APP_NAME-$cert.crt
             curl -L -s --insecure -X GET -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/ssl/client/$APP_NAME/$cert | jq -r '.data.private_key' > $TMPDIR/$APP_NAME-$cert.key
-            
-            echo "$CLIENT_KEYSTORE_PASS" | openssl pkcs12 -export -out $TMPDIR/$APP_NAME-$cert.p12 -inkey $TMPDIR/$APP_NAME-$cert.key -in $TMPDIR/$APP_NAME-$cert.crt -password stdin -name $cert
-            keytool -importkeystore -srckeystore $TMPDIR/$APP_NAME-$cert.p12 -srcstoretype PKCS12 -destkeystore $CLIENT_KEYSTORE -deststoretype JKS -deststorepass $CLIENT_KEYSTORE_PASS -srcstorepass $CLIENT_KEYSTORE_PASS -alias $cert -destalias $cert
+
+            if grep -Fxq "null" $TMPDIR/$APP_NAME-$cert.key; then
+                echo "   only have cert. Importing only cert to keystore"
+                keytool -importcert -noprompt -file $TMPDIR/$APP_NAME-$cert.crt -keystore $CLIENT_KEYSTORE -deststoretype JKS -deststorepass $CLIENT_KEYSTORE_PASS -alias $cert -destalias $cert
+            else
+                echo "$CLIENT_KEYSTORE_PASS" | openssl pkcs12 -export -out $TMPDIR/$APP_NAME-$cert.p12 -inkey $TMPDIR/$APP_NAME-$cert.key -in $TMPDIR/$APP_NAME-$cert.crt -password stdin -name $cert
+                keytool -importkeystore -srckeystore $TMPDIR/$APP_NAME-$cert.p12 -srcstoretype PKCS12 -destkeystore $CLIENT_KEYSTORE -deststoretype JKS -deststorepass $CLIENT_KEYSTORE_PASS -srcstorepass $CLIENT_KEYSTORE_PASS -alias $cert -destalias $cert
+            fi
         done
     else
         echo 'No client certificates to load.'
