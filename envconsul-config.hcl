@@ -18,12 +18,12 @@ upcase = false
 
 # Secrets to load into the environment
 secret {
-    format = "discovery.{{ key }}"
+    format = "ascent.discovery.{{ key }}"
     no_prefix = true
     path = "secret/ascent-discovery"
 }
 secret {
-    format = "config.{{ key }}"
+    format = "ascent.config.{{ key }}"
     no_prefix = true
     path = "secret/ascent-config"
 }
